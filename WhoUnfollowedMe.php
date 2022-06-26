@@ -33,7 +33,6 @@ if (!file_exists($userName . ".txt")) {
 	$unfollowers = array_diff(explode(', ', $followers), $currentFollowers);
 	if (count($unfollowers) > 0) {
 		echo PHP_EOL . "Unfollowers: " . implode(', ', $unfollowers) . PHP_EOL;
-		// remove followers in the file and  update current followers to new followers file
 		$file = fopen($userName . ".txt", "w");
 		fwrite($file, implode(', ', $currentFollowers));
 		fclose($file);
