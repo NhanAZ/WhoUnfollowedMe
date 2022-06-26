@@ -51,7 +51,6 @@ function getFollowers(string $userName): array {
 		"header" => "User-Agent:Mozilla/5.0 (Linux; {Android Version}; {Build Tag etc.}) AppleWebKit/{WebKit Rev} (KHTML, like Gecko) Chrome/{Chrome Rev} Mobile Safari/{WebKit Rev}"
 	)));
 	$getFollowersInfo = json_decode(file_get_contents($fileName, $useIncludePath, $context));
-	$followers = [];
 	foreach ($getFollowersInfo as $follower) {
 		$followers[] = $follower->login;
 	}
