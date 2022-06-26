@@ -17,28 +17,30 @@ if (!file_exists($userName . ".txt")) {
 	fwrite($file, implode(', ', $followers));
 	fclose($file);
 	echo PHP_EOL . "Your follower list has now been saved. Don't forget to check back often to see if anybody goes missing." . PHP_EOL . PHP_EOL;
-	echo "Your current followers are: " . implode(', ', $followers) . PHP_EOL . PHP_EOL;
+	echo "Your current followers are (" .  count($followers) . "): " . implode(', ', $followers) . PHP_EOL . PHP_EOL;
 } else {
 	$file = fopen($userName . ".txt", "r");
-	$followers = fread($file, filesize($userName . ".txt"));
+	$oldFollowers = explode(', ', fread($file, filesize($userName . ".txt")));
 	fclose($file);
-	echo  PHP_EOL . "Your followers are: " . $followers . PHP_EOL;
-	$currentFollowers = getFollowers($userName);
-	$newFollowers = array_diff($currentFollowers, explode(', ', $followers));
-	if (count($newFollowers) > 0) {
-		echo PHP_EOL . "New followers: " . implode(', ', $newFollowers) . PHP_EOL;
-	} else {
-		echo PHP_EOL . "No new followers." . PHP_EOL;
-	}
-	$unfollowers = array_diff(explode(', ', $followers), $currentFollowers);
-	if (count($unfollowers) > 0) {
-		echo PHP_EOL . "Unfollowers: " . implode(', ', $unfollowers) . PHP_EOL;
-		$file = fopen($userName . ".txt", "w");
-		fwrite($file, implode(', ', $currentFollowers));
-		fclose($file);
+	$newFollowers = getFollowers($userName);
+	$unfollowers = array_diff($oldFollowers, $newFollowers);
+	$followers = array_diff($newFollowers, $oldFollowers);
+	$file = fopen($userName . ".txt", "w");
+	fwrite($file, implode(', ', $newFollowers));
+	fclose($file);
+	echo PHP_EOL . "Your current followers are (" .  count($newFollowers) . "): " . implode(', ', $newFollowers) . PHP_EOL . PHP_EOL;
+	echo "You have been followed by (" .  count($followers) . "): " . implode(', ', $followers) .  PHP_EOL . PHP_EOL;
+	echo "You have been unfollowed by (" .  count($unfollowers) . "): " . implode(', ', $unfollowers) . PHP_EOL . PHP_EOL;
+	updateCache($userName);
+}
+
+function updateCache(string $userName, bool $notification = true): void {
+	$file = fopen($userName . ".txt", "w");
+	$followers = getFollowers($userName);
+	fwrite($file, implode(', ', $followers));
+	fclose($file);
+	if ($notification) {
 		echo PHP_EOL . "Your follower list has been updated!" . PHP_EOL . PHP_EOL;
-	} else {
-		echo PHP_EOL . "No unfollowers." . PHP_EOL . PHP_EOL;
 	}
 }
 
