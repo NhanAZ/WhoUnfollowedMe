@@ -45,7 +45,7 @@ function updateCache(string $userName, bool $notification = true): void {
 }
 
 function getFollowers(string $userName): array {
-	$fileName = "https://api.github.com/users/" . $userName . "/followers";
+	$fileName = "https://api.github.com/users/" . $userName . "/followers?page=1&per_page=100";
 	$useIncludePath = false;
 	$context = stream_context_create(array("http" => array(
 		"header" => "User-Agent:Mozilla/5.0 (Linux; {Android Version}; {Build Tag etc.}) AppleWebKit/{WebKit Rev} (KHTML, like Gecko) Chrome/{Chrome Rev} Mobile Safari/{WebKit Rev}"
