@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>GitHub Follower Tracker</title>
+	<!-- Bootstrap CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+	<style>
+		:root {
+			--primary-color: #0d1117;
+			--secondary-color: #161b22;
+			--accent-color: #58a6ff;
+			--text-color: #c9d1d9;
+			--border-color: #30363d;
+		}
+
+		body {
+			background-color: var(--primary-color);
+			color: var(--text-color);
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+			padding: 0;
+			margin: 0;
+			min-height: 100vh;
+		}
+
+		.app-container {
+			max-width: 1000px;
+			margin: 0 auto;
+			padding: 2rem;
+		}
+
+		.app-header {
+			text-align: center;
+			margin-bottom: 2rem;
+		}
+
+		.app-title {
+			color: #ffffff;
+			font-weight: 700;
+			font-size: 2.5rem;
+			margin-bottom: 0.5rem;
+		}
+
+		.app-subtitle {
+			color: #8b949e;
+			font-size: 1.1rem;
+		}
+
+		.search-card {
+			background-color: var(--secondary-color);
+			border-radius: 10px;
+			border: 1px solid var(--border-color);
+			padding: 2rem;
+			margin-bottom: 2rem;
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+		}
+
+		.form-control {
+			background-color: var(--primary-color);
+			border: 1px solid var(--border-color);
+			color: var(--text-color);
+			padding: 0.75rem 1rem;
+		}
+
+		.form-control:focus {
+			background-color: var(--primary-color);
+			color: var(--text-color);
+			border-color: var(--accent-color);
+			box-shadow: 0 0 0 0.25rem rgba(88, 166, 255, 0.25);
+		}
+
+		.form-label {
+			font-weight: 600;
+			margin-bottom: 0.5rem;
+		}
+
+		.btn-primary {
+			background-color: var(--accent-color);
+			border: none;
+			padding: 0.75rem 1.5rem;
+			font-weight: 600;
+		}
+
+		.btn-primary:hover {
+			background-color: #4c8dd3;
+		}
+
+		.results-container {
+			display: none;
+		}
+
+		.card {
+			background-color: var(--secondary-color);
+			border: 1px solid var(--border-color);
+			border-radius: 10px;
+			margin-bottom: 1.5rem;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		}
+
+		.card-header {
+			background-color: rgba(88, 166, 255, 0.1);
+			border-bottom: 1px solid var(--border-color);
+			font-weight: 600;
+			padding: 1rem 1.5rem;
+		}
+
+		.followers-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+
+		.follower-item {
+			display: flex;
+			align-items: center;
+			background-color: var(--primary-color);
+			border-radius: 8px;
+			padding: 0.5rem 0.75rem;
+			transition: transform 0.2s, box-shadow 0.2s;
+		}
+
+		.follower-item:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+		}
+
+		.follower-avatar {
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			margin-right: 0.75rem;
+		}
+
+		.follower-link {
+			color: var(--accent-color);
+			text-decoration: none;
+		}
+
+		.follower-link:hover {
+			text-decoration: underline;
+		}
+
+		.status-badge {
+			font-size: 0.85rem;
+			padding: 0.25rem 0.5rem;
+			border-radius: 12px;
+			margin-left: 0.5rem;
+		}
+
+		.badge-new {
+			background-color: #238636;
+		}
+
+		.badge-lost {
+			background-color: #da3633;
+		}
+
+		.spinner-container {
+			display: none;
+			justify-content: center;
+			margin: 2rem 0;
+		}
+
+		.error-message {
+			display: none;
+			background-color: rgba(218, 54, 51, 0.2);
+			color: #ff7b72;
+			border: 1px solid #da3633;
+			border-radius: 6px;
+			padding: 1rem;
+			margin: 1rem 0;
+		}
+
+		.stat-card {
+			text-align: center;
+			padding: 1rem;
+		}
+
+		.stat-value {
+			font-size: 2.5rem;
+			font-weight: 700;
+			color: white;
+		}
+
+		.stat-label {
+			color: #8b949e;
+			font-size: 0.9rem;
+		}
+
+		.list-tabs .nav-link {
+			color: #8b949e;
+			border: none;
+			padding: 0.75rem 1rem;
+		}
+
+		.list-tabs .nav-link.active {
+			background-color: transparent;
+			color: white;
+			border-bottom: 2px solid var(--accent-color);
+		}
+
+		#historyList {
+			list-style: none;
+			padding: 0;
+		}
+
+		.history-item {
+			padding: 0.75rem 1rem;
+			border-bottom: 1px solid var(--border-color);
+			cursor: pointer;
+		}
+
+		.history-item:hover {
+			background-color: rgba(88, 166, 255, 0.1);
+		}
+
+		@media (max-width: 768px) {
+			.app-container {
+				padding: 1rem;
+			}
+
+			.search-card {
+				padding: 1.5rem;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="app-container">
+		<div class="app-header">
+			<h1 class="app-title">GitHub Follower Tracker</h1>
+			<p class="app-subtitle">Theo dõi sự thay đổi người theo dõi tài khoản GitHub của bạn</p>
+		</div>
+
+		<div class="search-card">
+			<form id="githubForm" class="mb-4">
+				<div class="mb-3">
+					<label for="username" class="form-label">Tên người dùng GitHub</label>
+					<div class="input-group">
+						<span class="input-group-text"><i class="fab fa-github"></i></span>
+						<input type="text" class="form-control" id="username" placeholder="Nhập tên người dùng GitHub"
+							required>
+						<button type="submit" class="btn btn-primary">Kiểm tra <i
+								class="fas fa-search ms-1"></i></button>
+					</div>
+				</div>
+			</form>
+
+			<div class="error-message" id="errorMessage">
+				<i class="fas fa-exclamation-circle me-2"></i> <span id="errorText"></span>
+			</div>
+		</div>
+
+		<div class="spinner-container" id="loadingSpinner">
+			<div class="spinner-border text-light" role="status">
+				<span class="visually-hidden">Đang tải...</span>
+			</div>
+		</div>
+
+		<div class="results-container" id="resultsContainer">
+			<div class="row mb-4">
+				<div class="col-md-4">
+					<div class="card stat-card">
+						<div class="stat-value" id="totalFollowers">0</div>
+						<div class="stat-label">Tổng số người theo dõi</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="card stat-card">
+						<div class="stat-value text-success" id="newFollowers">0</div>
+						<div class="stat-label">Người mới theo dõi</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="card stat-card">
+						<div class="stat-value text-danger" id="lostFollowers">0</div>
+						<div class="stat-label">Người đã bỏ theo dõi</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="card">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<span>Chi tiết người theo dõi</span>
+					<span class="badge bg-light text-dark" id="lastChecked"></span>
+				</div>
+				<div class="card-body">
+					<ul class="nav nav-tabs list-tabs mb-3" id="followerTabs" role="tablist">
+						<li class="nav-item" role="presentation">
+							<button class="nav-link active" id="all-tab" data-bs-toggle="tab"
+								data-bs-target="#all-followers" type="button" role="tab" aria-controls="all-followers"
+								aria-selected="true">
+								Tất cả <span class="badge bg-secondary ms-1" id="allCount">0</span>
+							</button>
+						</li>
+						<li class="nav-item" role="presentation">
+							<button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-followers"
+								type="button" role="tab" aria-controls="new-followers" aria-selected="false">
+								Mới <span class="badge bg-success ms-1" id="newCount">0</span>
+							</button>
+						</li>
+						<li class="nav-item" role="presentation">
+							<button class="nav-link" id="lost-tab" data-bs-toggle="tab" data-bs-target="#lost-followers"
+								type="button" role="tab" aria-controls="lost-followers" aria-selected="false">
+								Đã mất <span class="badge bg-danger ms-1" id="lostCount">0</span>
+							</button>
+						</li>
+						<li class="nav-item" role="presentation">
+							<button class="nav-link" id="history-tab" data-bs-toggle="tab"
+								data-bs-target="#history-tab-content" type="button" role="tab"
+								aria-controls="history-tab-content" aria-selected="false">
+								Lịch sử
+							</button>
+						</li>
+					</ul>
+					<div class="tab-content" id="followerTabsContent">
+						<div class="tab-pane fade show active" id="all-followers" role="tabpanel"
+							aria-labelledby="all-tab">
+							<div class="followers-list" id="allFollowersList"></div>
+						</div>
+						<div class="tab-pane fade" id="new-followers" role="tabpanel" aria-labelledby="new-tab">
+							<div class="followers-list" id="newFollowersList"></div>
+						</div>
+						<div class="tab-pane fade" id="lost-followers" role="tabpanel" aria-labelledby="lost-tab">
+							<div class="followers-list" id="lostFollowersList"></div>
+						</div>
+						<div class="tab-pane fade" id="history-tab-content" role="tabpanel"
+							aria-labelledby="history-tab">
+							<ul id="historyList" class="mt-3"></ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Bootstrap JS Bundle with Popper -->
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+			const githubForm = document.getElementById('githubForm');
+			const usernameInput = document.getElementById('username');
+			const loadingSpinner = document.getElementById('loadingSpinner');
+			const resultsContainer = document.getElementById('resultsContainer');
+			const errorMessage = document.getElementById('errorMessage');
+			const errorText = document.getElementById('errorText');
+
+			// Stats elements
+			const totalFollowersEl = document.getElementById('totalFollowers');
+			const newFollowersEl = document.getElementById('newFollowers');
+			const lostFollowersEl = document.getElementById('lostFollowers');
+			const lastCheckedEl = document.getElementById('lastChecked');
+
+			// Counts
+			const allCountEl = document.getElementById('allCount');
+			const newCountEl = document.getElementById('newCount');
+			const lostCountEl = document.getElementById('lostCount');
+
+			// Lists
+			const allFollowersList = document.getElementById('allFollowersList');
+			const newFollowersList = document.getElementById('newFollowersList');
+			const lostFollowersList = document.getElementById('lostFollowersList');
+			const historyList = document.getElementById('historyList');
+
+			// Load search history from localStorage
+			const searchHistory = JSON.parse(localStorage.getItem('githubFollowerHistory') || '{}');
+
+			// Utility function to format date
+			function formatDate(date) {
+				return new Date(date).toLocaleString('vi-VN', {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
+					hour: '2-digit',
+					minute: '2-digit'
+				});
+			}
+
+			// Function to add a user to history
+			function addToHistory(username, followers) {
+				if (!searchHistory[username]) {
+					searchHistory[username] = [];
+				}
+
+				const currentData = {
+					timestamp: new Date().toISOString(),
+					followers: followers
+				};
+
+				searchHistory[username].unshift(currentData);
+
+				// Keep only the latest 10 entries
+				if (searchHistory[username].length > 10) {
+					searchHistory[username] = searchHistory[username].slice(0, 10);
+				}
+
+				localStorage.setItem('githubFollowerHistory', JSON.stringify(searchHistory));
+				updateHistoryList(username);
+			}
+
+			// Update history list for a specific username
+			function updateHistoryList(username) {
+				historyList.innerHTML = '';
+
+				if (!searchHistory[username] || searchHistory[username].length <= 1) {
+					historyList.innerHTML = '<li class="text-center p-3">Chưa có lịch sử kiểm tra trước đó</li>';
+					return;
+				}
+
+				const userHistory = searchHistory[username];
+
+				for (let i = 1; i < userHistory.length; i++) {
+					const historyItem = document.createElement('li');
+					historyItem.className = 'history-item';
+
+					const current = userHistory[i - 1];
+					const previous = userHistory[i];
+
+					const currentFollowers = new Set(current.followers);
+					const previousFollowers = new Set(previous.followers);
+
+					const gained = [...currentFollowers].filter(f => !previousFollowers.has(f)).length;
+					const lost = [...previousFollowers].filter(f => !currentFollowers.has(f)).length;
+
+					historyItem.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">${formatDate(previous.timestamp)}</div>
+                                <div class="small text-muted">Tổng: ${previous.followers.length}</div>
+                            </div>
+                            <div>
+                                ${gained ? `<span class="badge bg-success me-1">+${gained}</span>` : ''}
+                                ${lost ? `<span class="badge bg-danger">-${lost}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+					historyList.appendChild(historyItem);
+				}
+			}
+
+			// Function to get followers from GitHub API
+			function getFollowers(username) {
+				return fetch(`https://api.github.com/users/${username}/followers?per_page=100`, {
+					headers: {
+						'User-Agent': 'GitHub-Follower-Tracker'
+					}
+				})
+					.then(function (response) {
+						if (!response.ok) {
+							throw new Error(`HTTP error: ${response.status}`);
+						}
+						return response.json();
+					})
+					.then(function (data) {
+						return data.map(follower => ({
+							login: follower.login,
+							avatar_url: follower.avatar_url,
+							html_url: follower.html_url
+						}));
+					});
+			}
+
+			// Function to create follower element
+			function createFollowerElement(follower, isNew = false, isLost = false) {
+				const followerEl = document.createElement('div');
+				followerEl.className = 'follower-item';
+
+				let badgeHtml = '';
+				if (isNew) {
+					badgeHtml = '<span class="badge status-badge badge-new">Mới</span>';
+				} else if (isLost) {
+					badgeHtml = '<span class="badge status-badge badge-lost">Đã mất</span>';
+				}
+
+				followerEl.innerHTML = `
+                    <img src="${follower.avatar_url}" alt="${follower.login}" class="follower-avatar">
+                    <a href="${follower.html_url}" target="_blank" class="follower-link">${follower.login}</a>
+                    ${badgeHtml}
+                `;
+
+				return followerEl;
+			}
+
+			// Form submission handler
+			githubForm.addEventListener('submit', function (e) {
+				e.preventDefault();
+
+				const username = usernameInput.value.trim();
+
+				if (!username) {
+					return;
+				}
+
+				// Show loading spinner and hide results
+				loadingSpinner.style.display = 'flex';
+				resultsContainer.style.display = 'none';
+				errorMessage.style.display = 'none';
+
+				getFollowers(username)
+					.then(function (currentFollowers) {
+						// Get previous followers from history
+						let previousFollowers = [];
+						if (searchHistory[username] && searchHistory[username].length > 0) {
+							previousFollowers = searchHistory[username][0].followers;
+						}
+
+						// Convert to basic format for storage
+						const currentFollowersBasic = currentFollowers.map(f => f.login);
+
+						// Add to history
+						addToHistory(username, currentFollowersBasic);
+
+						// Calculate differences
+						const previousFollowersSet = new Set(previousFollowers);
+						const currentFollowersSet = new Set(currentFollowersBasic);
+
+						const newFollowersArray = currentFollowers.filter(f => !previousFollowersSet.has(f.login));
+						const lostFollowersArray = previousFollowers
+							.filter(f => !currentFollowersSet.has(f))
+							.map(login => ({ login, avatar_url: `https://github.com/${login}.png`, html_url: `https://github.com/${login}` }));
+
+						// Update stats
+						totalFollowersEl.textContent = currentFollowers.length;
+						newFollowersEl.textContent = newFollowersArray.length;
+						lostFollowersEl.textContent = lostFollowersArray.length;
+
+						// Update counts
+						allCountEl.textContent = currentFollowers.length;
+						newCountEl.textContent = newFollowersArray.length;
+						lostCountEl.textContent = lostFollowersArray.length;
+
+						// Last checked
+						lastCheckedEl.textContent = `Cập nhật lúc: ${formatDate(new Date())}`;
+
+						// Update followers lists
+						allFollowersList.innerHTML = '';
+						newFollowersList.innerHTML = '';
+						lostFollowersList.innerHTML = '';
+
+						// All followers
+						currentFollowers.forEach(follower => {
+							const isNew = !previousFollowersSet.has(follower.login);
+							allFollowersList.appendChild(createFollowerElement(follower, isNew));
+						});
+
+						// New followers
+						if (newFollowersArray.length === 0) {
+							newFollowersList.innerHTML = '<div class="p-3 text-center w-100">Không có người theo dõi mới</div>';
+						} else {
+							newFollowersArray.forEach(follower => {
+								newFollowersList.appendChild(createFollowerElement(follower, true));
+							});
+						}
+
+						// Lost followers
+						if (lostFollowersArray.length === 0) {
+							lostFollowersList.innerHTML = '<div class="p-3 text-center w-100">Không có người bỏ theo dõi</div>';
+						} else {
+							lostFollowersArray.forEach(follower => {
+								lostFollowersList.appendChild(createFollowerElement(follower, false, true));
+							});
+						}
+
+						// Show results
+						resultsContainer.style.display = 'block';
+					})
+					.catch(function (error) {
+						console.error('Error:', error);
+						errorText.textContent = `Không thể tải thông tin người dùng "${username}". Vui lòng kiểm tra lại tên người dùng hoặc thử lại sau.`;
+						errorMessage.style.display = 'block';
+					})
+					.finally(function () {
+						loadingSpinner.style.display = 'none';
+					});
+			});
+
+			// Load from URL if provided
+			const urlParams = new URLSearchParams(window.location.search);
+			const usernameParam = urlParams.get('username');
+
+			if (usernameParam) {
+				usernameInput.value = usernameParam;
+				githubForm.dispatchEvent(new Event('submit'));
+			}
+		});
+	</script>
+</body>
+
+</html>
