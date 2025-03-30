@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 
 <head>
 	<meta charset="UTF-8">
@@ -48,6 +48,17 @@
 		.app-subtitle {
 			color: #8b949e;
 			font-size: 1.1rem;
+		}
+
+		.token-input {
+			display: none;
+			margin-top: 1rem;
+		}
+
+		.token-tip {
+			font-size: 0.85rem;
+			color: #8b949e;
+			margin-top: 0.5rem;
 		}
 
 		.search-card {
@@ -176,6 +187,27 @@
 			margin: 1rem 0;
 		}
 
+		.loading-status {
+			margin-top: 0.75rem;
+			font-size: 0.9rem;
+			color: #8b949e;
+			animation: pulse 1.5s infinite;
+		}
+
+		@keyframes pulse {
+			0% {
+				opacity: 0.6;
+			}
+
+			50% {
+				opacity: 1;
+			}
+
+			100% {
+				opacity: 0.6;
+			}
+		}
+
 		.stat-card {
 			text-align: center;
 			padding: 1rem;
@@ -235,19 +267,53 @@
 	<div class="app-container">
 		<div class="app-header">
 			<h1 class="app-title">GitHub Follower Tracker</h1>
-			<p class="app-subtitle">Theo dõi sự thay đổi người theo dõi tài khoản GitHub của bạn</p>
+			<p class="app-subtitle">Track changes in your GitHub account followers</p>
 		</div>
 
 		<div class="search-card">
 			<form id="githubForm" class="mb-4">
 				<div class="mb-3">
-					<label for="username" class="form-label">Tên người dùng GitHub</label>
+					<label for="username" class="form-label">GitHub Username</label>
 					<div class="input-group">
 						<span class="input-group-text"><i class="fab fa-github"></i></span>
-						<input type="text" class="form-control" id="username" placeholder="Nhập tên người dùng GitHub"
+						<input type="text" class="form-control" id="username" placeholder="Enter GitHub username"
 							required>
-						<button type="submit" class="btn btn-primary">Kiểm tra <i
-								class="fas fa-search ms-1"></i></button>
+						<button type="submit" class="btn btn-primary">Check <i class="fas fa-search ms-1"></i></button>
+					</div>
+					<div class="form-check mt-2">
+						<input class="form-check-input" type="checkbox" id="useTokenCheck">
+						<label class="form-check-label" for="useTokenCheck">
+							Use GitHub Token (Recommended for accounts with many followers)
+						</label>
+					</div>
+					<div id="tokenInput" class="token-input">
+						<div class="input-group">
+							<span class="input-group-text"><i class="fas fa-key"></i></span>
+							<input type="password" class="form-control" id="githubToken"
+								placeholder="Enter GitHub Personal Access Token" autocomplete="current-password">
+						</div>
+						<div class="token-tip">
+							<i class="fas fa-info-circle me-1"></i> Token will be stored in your browser and only used
+							to call GitHub API.
+							<a href="https://github.com/settings/tokens/new?scopes=read:user" target="_blank">Create new
+								token</a> (only "read:user" permission needed)
+						</div>
+					</div>
+					<div class="mt-3 mb-0">
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="dataSource" id="updateData"
+								value="update" checked>
+							<label class="form-check-label" for="updateData">
+								Update new data from GitHub
+							</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="dataSource" id="useHistory"
+								value="history">
+							<label class="form-check-label" for="useHistory">
+								Use saved data only
+							</label>
+						</div>
 					</div>
 				</div>
 			</form>
@@ -259,7 +325,7 @@
 
 		<div class="spinner-container" id="loadingSpinner">
 			<div class="spinner-border text-light" role="status">
-				<span class="visually-hidden">Đang tải...</span>
+				<span class="visually-hidden">Loading...</span>
 			</div>
 		</div>
 
@@ -268,26 +334,26 @@
 				<div class="col-md-4">
 					<div class="card stat-card">
 						<div class="stat-value" id="totalFollowers">0</div>
-						<div class="stat-label">Tổng số người theo dõi</div>
+						<div class="stat-label">Total Followers</div>
 					</div>
 				</div>
 				<div class="col-md-4">
 					<div class="card stat-card">
 						<div class="stat-value text-success" id="newFollowers">0</div>
-						<div class="stat-label">Người mới theo dõi</div>
+						<div class="stat-label">New Followers</div>
 					</div>
 				</div>
 				<div class="col-md-4">
 					<div class="card stat-card">
 						<div class="stat-value text-danger" id="lostFollowers">0</div>
-						<div class="stat-label">Người đã bỏ theo dõi</div>
+						<div class="stat-label">Lost Followers</div>
 					</div>
 				</div>
 			</div>
 
 			<div class="card">
 				<div class="card-header d-flex justify-content-between align-items-center">
-					<span>Chi tiết người theo dõi</span>
+					<span>Follower Details</span>
 					<span class="badge bg-light text-dark" id="lastChecked"></span>
 				</div>
 				<div class="card-body">
@@ -296,26 +362,26 @@
 							<button class="nav-link active" id="all-tab" data-bs-toggle="tab"
 								data-bs-target="#all-followers" type="button" role="tab" aria-controls="all-followers"
 								aria-selected="true">
-								Tất cả <span class="badge bg-secondary ms-1" id="allCount">0</span>
+								All <span class="badge bg-secondary ms-1" id="allCount">0</span>
 							</button>
 						</li>
 						<li class="nav-item" role="presentation">
 							<button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-followers"
 								type="button" role="tab" aria-controls="new-followers" aria-selected="false">
-								Mới <span class="badge bg-success ms-1" id="newCount">0</span>
+								New <span class="badge bg-success ms-1" id="newCount">0</span>
 							</button>
 						</li>
 						<li class="nav-item" role="presentation">
 							<button class="nav-link" id="lost-tab" data-bs-toggle="tab" data-bs-target="#lost-followers"
 								type="button" role="tab" aria-controls="lost-followers" aria-selected="false">
-								Đã mất <span class="badge bg-danger ms-1" id="lostCount">0</span>
+								Lost <span class="badge bg-danger ms-1" id="lostCount">0</span>
 							</button>
 						</li>
 						<li class="nav-item" role="presentation">
 							<button class="nav-link" id="history-tab" data-bs-toggle="tab"
 								data-bs-target="#history-tab-content" type="button" role="tab"
 								aria-controls="history-tab-content" aria-selected="false">
-								Lịch sử
+								History
 							</button>
 						</li>
 					</ul>
@@ -332,6 +398,115 @@
 						</div>
 						<div class="tab-pane fade" id="history-tab-content" role="tabpanel"
 							aria-labelledby="history-tab">
+							<div class="d-flex justify-content-between align-items-center mb-3 mt-3">
+								<h5 class="mb-0">Data Management</h5>
+								<div class="btn-group">
+									<button id="exportDataBtn" class="btn btn-sm btn-outline-info dropdown-toggle"
+										type="button" data-bs-toggle="dropdown" aria-expanded="false">
+										<i class="fas fa-download me-1"></i> Export Data
+									</button>
+									<ul class="dropdown-menu dropdown-menu-dark">
+										<li><a class="dropdown-item" href="#" id="exportAllData">All Data</a>
+										</li>
+										<li><a class="dropdown-item" href="#" id="export24h">Last 24 hours</a></li>
+										<li><a class="dropdown-item" href="#" id="export7days">Last 7 days</a></li>
+										<li><a class="dropdown-item" href="#" id="export30days">Last 30 days</a>
+										</li>
+										<li>
+											<hr class="dropdown-divider">
+										</li>
+										<li><a class="dropdown-item" href="#" id="exportCustom">Custom date range...</a>
+										</li>
+									</ul>
+									<button id="importDataBtn" class="btn btn-sm btn-outline-success" type="button">
+										<i class="fas fa-upload me-1"></i> Import Data
+									</button>
+									<button id="clearDataBtn" class="btn btn-sm btn-outline-danger" type="button">
+										<i class="fas fa-trash me-1"></i> Clear All Data
+									</button>
+								</div>
+							</div>
+							<input type="file" id="importFileInput" accept=".json" style="display: none;">
+							<div id="importMessage" class="alert" style="display: none;"></div>
+
+							<!-- Custom date range modal -->
+							<div class="modal fade" id="exportDateModal" tabindex="-1"
+								aria-labelledby="exportDateModalLabel" aria-hidden="true">
+								<div class="modal-dialog">
+									<div class="modal-content bg-dark text-light">
+										<div class="modal-header border-secondary">
+											<h5 class="modal-title" id="exportDateModalLabel">Export data by date range
+											</h5>
+											<button type="button" class="btn-close btn-close-white"
+												data-bs-dismiss="modal" aria-label="Close"></button>
+										</div>
+										<div class="modal-body">
+											<form id="exportDateForm">
+												<div class="mb-3">
+													<label for="startDate" class="form-label">From date</label>
+													<input type="datetime-local"
+														class="form-control bg-secondary text-light" id="startDate">
+												</div>
+												<div class="mb-3">
+													<label for="endDate" class="form-label">To date</label>
+													<input type="datetime-local"
+														class="form-control bg-secondary text-light" id="endDate">
+												</div>
+											</form>
+										</div>
+										<div class="modal-footer border-secondary">
+											<button type="button" class="btn btn-secondary"
+												data-bs-dismiss="modal">Cancel</button>
+											<button type="button" class="btn btn-primary" id="confirmExportDate">Export
+												data</button>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="card mb-3">
+								<div class="card-header">
+									<h6 class="mb-0">Tracked Accounts</h6>
+								</div>
+								<div class="card-body">
+									<div id="savedUsersList" class="d-flex flex-wrap gap-2"></div>
+								</div>
+							</div>
+
+							<div class="card mb-3">
+								<div class="card-header">
+									<h6 class="mb-0">Compare History</h6>
+								</div>
+								<div class="card-body">
+									<div class="row mb-3" id="compareHistoryContainer" style="display: none;">
+										<div class="col-md-5">
+											<label class="form-label">Previous History</label>
+											<select class="form-select bg-dark text-light" id="compareStart">
+												<option value="">Select history...</option>
+											</select>
+										</div>
+										<div
+											class="col-md-2 text-center d-flex align-items-end justify-content-center mb-2">
+											<i class="fas fa-exchange-alt"></i>
+										</div>
+										<div class="col-md-5">
+											<label class="form-label">Later History</label>
+											<select class="form-select bg-dark text-light" id="compareEnd">
+												<option value="">Select history...</option>
+											</select>
+										</div>
+										<div class="col-12 mt-3">
+											<button class="btn btn-sm btn-outline-info w-100" id="compareBtn" disabled>
+												<i class="fas fa-code-compare me-1"></i> Compare
+											</button>
+										</div>
+									</div>
+									<div id="noCompareData" class="text-center text-light">
+										At least 2 history entries are needed for comparison
+									</div>
+								</div>
+							</div>
+
 							<ul id="historyList" class="mt-3"></ul>
 						</div>
 					</div>
@@ -352,6 +527,11 @@
 			const errorMessage = document.getElementById('errorMessage');
 			const errorText = document.getElementById('errorText');
 
+			// GitHub Token elements
+			const useTokenCheck = document.getElementById('useTokenCheck');
+			const tokenInput = document.getElementById('tokenInput');
+			const githubToken = document.getElementById('githubToken');
+
 			// Stats elements
 			const totalFollowersEl = document.getElementById('totalFollowers');
 			const newFollowersEl = document.getElementById('newFollowers');
@@ -368,13 +548,21 @@
 			const newFollowersList = document.getElementById('newFollowersList');
 			const lostFollowersList = document.getElementById('lostFollowersList');
 			const historyList = document.getElementById('historyList');
+			const savedUsersList = document.getElementById('savedUsersList');
 
 			// Load search history from localStorage
 			const searchHistory = JSON.parse(localStorage.getItem('githubFollowerHistory') || '{}');
 
+			// Elements for data management
+			const exportDataBtn = document.getElementById('exportDataBtn');
+			const importDataBtn = document.getElementById('importDataBtn');
+			const clearDataBtn = document.getElementById('clearDataBtn');
+			const importFileInput = document.getElementById('importFileInput');
+			const importMessage = document.getElementById('importMessage');
+
 			// Utility function to format date
 			function formatDate(date) {
-				return new Date(date).toLocaleString('vi-VN', {
+				return new Date(date).toLocaleString('en-US', {
 					year: 'numeric',
 					month: '2-digit',
 					day: '2-digit',
@@ -410,18 +598,58 @@
 				historyList.innerHTML = '';
 
 				if (!searchHistory[username] || searchHistory[username].length <= 1) {
-					historyList.innerHTML = '<li class="text-center p-3">Chưa có lịch sử kiểm tra trước đó</li>';
+					historyList.innerHTML = '<li class="text-center p-3">No previous history found</li>';
 					return;
 				}
+
+				// Add clear history button for the current user
+				const clearUserHistoryItem = document.createElement('li');
+				clearUserHistoryItem.className = 'history-item bg-dark';
+				clearUserHistoryItem.innerHTML = `
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<div class="fw-bold text-warning">Clear history for "${username}"</div>
+						</div>
+						<button class="btn btn-sm btn-outline-warning clear-user-history-btn">
+							<i class="fas fa-trash"></i> Clear
+						</button>
+					</div>
+				`;
+				historyList.appendChild(clearUserHistoryItem);
+
+				// Add event listener for clearing history button
+				const clearUserBtn = clearUserHistoryItem.querySelector('.clear-user-history-btn');
+				clearUserBtn.addEventListener('click', function () {
+					if (confirm(`Are you sure you want to clear all history for "${username}"?`)) {
+						delete searchHistory[username];
+						localStorage.setItem('githubFollowerHistory', JSON.stringify(searchHistory));
+
+						// Show success message
+						importMessage.className = 'alert alert-warning';
+						importMessage.textContent = `History for "${username}" has been cleared!`;
+						importMessage.style.display = 'block';
+
+						// Hide message after 3 seconds
+						setTimeout(() => {
+							importMessage.style.display = 'none';
+						}, 3000);
+
+						// Update interface
+						historyList.innerHTML = '<li class="text-center p-3">No history found</li>';
+					}
+				});
 
 				const userHistory = searchHistory[username];
 
 				for (let i = 1; i < userHistory.length; i++) {
 					const historyItem = document.createElement('li');
 					historyItem.className = 'history-item';
+					historyItem.dataset.index = i;
 
 					const current = userHistory[i - 1];
 					const previous = userHistory[i];
+
+					historyItem.dataset.timestamp = previous.timestamp;
 
 					const currentFollowers = new Set(current.followers);
 					const previousFollowers = new Set(previous.followers);
@@ -433,155 +661,286 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <div class="fw-bold">${formatDate(previous.timestamp)}</div>
-                                <div class="small text-muted">Tổng: ${previous.followers.length}</div>
+                                <div class="small text-light">Total: ${previous.followers.length}</div>
                             </div>
-                            <div>
-                                ${gained ? `<span class="badge bg-success me-1">+${gained}</span>` : ''}
-                                ${lost ? `<span class="badge bg-danger">-${lost}</span>` : ''}
+                            <div class="d-flex align-items-center">
+                                <div class="me-2">
+                                    ${gained ? `<span class="badge bg-success me-1">+${gained}</span>` : ''}
+                                    ${lost ? `<span class="badge bg-danger">-${lost}</span>` : ''}
+                                </div>
+                                <button class="btn btn-sm btn-outline-info me-1 compare-history-btn" title="Compare">
+                                    <i class="fas fa-code-compare"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-history-item-btn" title="Delete">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
                     `;
 
 					historyList.appendChild(historyItem);
-				}
-			}
 
-			// Function to get followers from GitHub API
-			function getFollowers(username) {
-				return fetch(`https://api.github.com/users/${username}/followers?per_page=100`, {
-					headers: {
-						'User-Agent': 'GitHub-Follower-Tracker'
-					}
-				})
-					.then(function (response) {
-						if (!response.ok) {
-							throw new Error(`HTTP error: ${response.status}`);
+					// Add event listener for deleting history item
+					const deleteBtn = historyItem.querySelector('.delete-history-item-btn');
+					deleteBtn.addEventListener('click', function (e) {
+						e.stopPropagation();
+
+						if (confirm('Are you sure you want to delete this history item?')) {
+							const index = parseInt(historyItem.dataset.index);
+							searchHistory[username].splice(index, 1);
+
+							// If no history left, delete all
+							if (searchHistory[username].length <= 1) {
+								delete searchHistory[username];
+							}
+
+							// Save back to localStorage
+							localStorage.setItem('githubFollowerHistory', JSON.stringify(searchHistory));
+
+							// Update interface
+							updateHistoryList(username);
 						}
-						return response.json();
-					})
-					.then(function (data) {
-						return data.map(follower => ({
-							login: follower.login,
-							avatar_url: follower.avatar_url,
-							html_url: follower.html_url
-						}));
 					});
-			}
 
-			// Function to create follower element
-			function createFollowerElement(follower, isNew = false, isLost = false) {
-				const followerEl = document.createElement('div');
-				followerEl.className = 'follower-item';
+					// Add compare event listener when comparing button is clicked
+					const compareBtn = historyItem.querySelector('.compare-history-btn');
+					compareBtn.addEventListener('click', function (e) {
+						e.stopPropagation();
 
-				let badgeHtml = '';
-				if (isNew) {
-					badgeHtml = '<span class="badge status-badge badge-new">Mới</span>';
-				} else if (isLost) {
-					badgeHtml = '<span class="badge status-badge badge-lost">Đã mất</span>';
+						// Set value to compare select
+						const index = parseInt(historyItem.dataset.index);
+						document.getElementById('compareStart').value = index;
+
+						// Default selected history will compare with latest history
+						document.getElementById('compareEnd').value = "0";
+
+						// Scroll to comparison section
+						document.getElementById('compareHistoryContainer').scrollIntoView({ behavior: 'smooth' });
+
+						// Activate compare button
+						document.getElementById('compareBtn').disabled = false;
+					});
 				}
 
-				followerEl.innerHTML = `
-                    <img src="${follower.avatar_url}" alt="${follower.login}" class="follower-avatar">
-                    <a href="${follower.html_url}" target="_blank" class="follower-link">${follower.login}</a>
-                    ${badgeHtml}
-                `;
-
-				return followerEl;
+				// Update compare options if enough data
+				updateCompareOptions(username);
 			}
 
-			// Form submission handler
-			githubForm.addEventListener('submit', function (e) {
-				e.preventDefault();
+			// Update compare options
+			function updateCompareOptions(username) {
+				const compareStart = document.getElementById('compareStart');
+				const compareEnd = document.getElementById('compareEnd');
+				const compareBtn = document.getElementById('compareBtn');
+				const compareContainer = document.getElementById('compareHistoryContainer');
+				const noCompareData = document.getElementById('noCompareData');
 
-				const username = usernameInput.value.trim();
+				// Clear old options
+				compareStart.innerHTML = '<option value="">Select history...</option>';
+				compareEnd.innerHTML = '<option value="">Select history...</option>';
 
-				if (!username) {
+				// Check if enough data for comparison
+				if (!searchHistory[username] || searchHistory[username].length < 2) {
+					compareContainer.style.display = 'none';
+					noCompareData.style.display = 'block';
 					return;
 				}
 
-				// Show loading spinner and hide results
-				loadingSpinner.style.display = 'flex';
-				resultsContainer.style.display = 'none';
-				errorMessage.style.display = 'none';
+				// Show comparison container
+				compareContainer.style.display = 'flex';
+				noCompareData.style.display = 'none';
 
-				getFollowers(username)
-					.then(function (currentFollowers) {
-						// Get previous followers from history
-						let previousFollowers = [];
-						if (searchHistory[username] && searchHistory[username].length > 0) {
-							previousFollowers = searchHistory[username][0].followers;
-						}
+				// Add options from history
+				const history = searchHistory[username];
 
-						// Convert to basic format for storage
-						const currentFollowersBasic = currentFollowers.map(f => f.login);
+				for (let i = 0; i < history.length; i++) {
+					const option = document.createElement('option');
+					option.value = i;
+					option.textContent = `${formatDate(new Date(history[i].timestamp))} (${history[i].followers.length} followers)`;
 
-						// Add to history
-						addToHistory(username, currentFollowersBasic);
+					// Add to both options
+					compareStart.appendChild(option.cloneNode(true));
+					compareEnd.appendChild(option);
+				}
 
-						// Calculate differences
-						const previousFollowersSet = new Set(previousFollowers);
-						const currentFollowersSet = new Set(currentFollowersBasic);
+				// Set default values
+				if (history.length >= 2) {
+					compareStart.value = 1;
+					compareEnd.value = 0;
+				}
 
-						const newFollowersArray = currentFollowers.filter(f => !previousFollowersSet.has(f.login));
-						const lostFollowersArray = previousFollowers
-							.filter(f => !currentFollowersSet.has(f))
-							.map(login => ({ login, avatar_url: `https://github.com/${login}.png`, html_url: `https://github.com/${login}` }));
+				// Disable compare button if not enough selected
+				function checkCompareButton() {
+					compareBtn.disabled = !compareStart.value || !compareEnd.value || compareStart.value === compareEnd.value;
+				}
 
-						// Update stats
-						totalFollowersEl.textContent = currentFollowers.length;
-						newFollowersEl.textContent = newFollowersArray.length;
-						lostFollowersEl.textContent = lostFollowersArray.length;
+				checkCompareButton();
 
-						// Update counts
-						allCountEl.textContent = currentFollowers.length;
-						newCountEl.textContent = newFollowersArray.length;
-						lostCountEl.textContent = lostFollowersArray.length;
+				// Add event listeners for options
+				compareStart.addEventListener('change', checkCompareButton);
+				compareEnd.addEventListener('change', checkCompareButton);
 
-						// Last checked
-						lastCheckedEl.textContent = `Cập nhật lúc: ${formatDate(new Date())}`;
+				// Add compare button event listener
+				compareBtn.addEventListener('click', function () {
+					const startIndex = parseInt(compareStart.value);
+					const endIndex = parseInt(compareEnd.value);
 
-						// Update followers lists
-						allFollowersList.innerHTML = '';
-						newFollowersList.innerHTML = '';
-						lostFollowersList.innerHTML = '';
+					if (startIndex === endIndex) return;
 
-						// All followers
-						currentFollowers.forEach(follower => {
-							const isNew = !previousFollowersSet.has(follower.login);
-							allFollowersList.appendChild(createFollowerElement(follower, isNew));
-						});
+					// Get history data
+					const startData = history[startIndex];
+					const endData = history[endIndex];
 
-						// New followers
-						if (newFollowersArray.length === 0) {
-							newFollowersList.innerHTML = '<div class="p-3 text-center w-100">Không có người theo dõi mới</div>';
-						} else {
-							newFollowersArray.forEach(follower => {
-								newFollowersList.appendChild(createFollowerElement(follower, true));
-							});
-						}
+					// Perform comparison
+					compareHistoryData(username, startData, endData);
+				});
+			}
 
-						// Lost followers
-						if (lostFollowersArray.length === 0) {
-							lostFollowersList.innerHTML = '<div class="p-3 text-center w-100">Không có người bỏ theo dõi</div>';
-						} else {
-							lostFollowersArray.forEach(follower => {
-								lostFollowersList.appendChild(createFollowerElement(follower, false, true));
-							});
-						}
+			// Compare two history versions
+			function compareHistoryData(username, startData, endData) {
+				// Create set from follower list
+				const startFollowers = new Set(startData.followers);
+				const endFollowers = new Set(endData.followers);
 
-						// Show results
-						resultsContainer.style.display = 'block';
-					})
-					.catch(function (error) {
-						console.error('Error:', error);
-						errorText.textContent = `Không thể tải thông tin người dùng "${username}". Vui lòng kiểm tra lại tên người dùng hoặc thử lại sau.`;
-						errorMessage.style.display = 'block';
-					})
-					.finally(function () {
-						loadingSpinner.style.display = 'none';
+				// Find new followers
+				const newFollowers = [...endFollowers].filter(f => !startFollowers.has(f));
+
+				// Find lost followers
+				const lostFollowers = [...startFollowers].filter(f => !endFollowers.has(f));
+
+				// This variable needs to be shared with renderFollowersList function to mark new followers
+				const previousFollowersSet = startFollowers;
+
+				// Convert to object for display
+				const newFollowersArray = newFollowers.map(login => ({
+					login,
+					avatar_url: `https://github.com/${login}.png`,
+					html_url: `https://github.com/${login}`
+				}));
+
+				const lostFollowersArray = lostFollowers.map(login => ({
+					login,
+					avatar_url: `https://github.com/${login}.png`,
+					html_url: `https://github.com/${login}`
+				}));
+
+				// Show results
+				// Remove old history alert if exists
+				const existingAlerts = resultsContainer.querySelectorAll('.history-alert, .compare-alert');
+				existingAlerts.forEach(alert => alert.remove());
+
+				// Show comparison alert
+				const startDate = formatDate(new Date(startData.timestamp));
+				const endDate = formatDate(new Date(endData.timestamp));
+
+				const compareAlert = document.createElement('div');
+				compareAlert.className = 'alert alert-primary mt-2 mb-2 compare-alert';
+				compareAlert.innerHTML = `
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<i class="fas fa-code-compare me-2"></i> Compare history for <strong>${username}</strong>
+							<div class="small">
+								From <strong>${startDate}</strong> to <strong>${endDate}</strong>
+							</div>
+						</div>
+						<div>
+							<div class="form-check form-check-inline mb-0">
+								<input class="form-check-input" type="checkbox" id="showAllTabFirst" ${localStorage.getItem('showAllTabFirst') !== 'false' ? 'checked' : ''}>
+								<label class="form-check-label small" for="showAllTabFirst">
+									Always show All tab
+								</label>
+							</div>
+							<button class="btn-close text-light ms-2" id="closeCompareBtn"></button>
+						</div>
+					</div>
+				`;
+				resultsContainer.prepend(compareAlert);
+
+				// Add close event
+				document.getElementById('closeCompareBtn').addEventListener('click', function () {
+					compareAlert.remove();
+				});
+
+				// Save tab selection to localStorage
+				document.getElementById('showAllTabFirst').addEventListener('change', function () {
+					localStorage.setItem('showAllTabFirst', this.checked);
+				});
+
+				// Update stats
+				totalFollowersEl.textContent = endData.followers.length;
+				newFollowersEl.textContent = newFollowers.length;
+				lostFollowersEl.textContent = lostFollowers.length;
+
+				// Update counts
+				allCountEl.textContent = endData.followers.length;
+				newCountEl.textContent = newFollowers.length;
+				lostCountEl.textContent = lostFollowers.length;
+
+				// Update history check time
+				lastCheckedEl.textContent = `Compared: ${startDate} → ${endDate}`;
+
+				// Update interface
+				allFollowersList.innerHTML = '';
+				newFollowersList.innerHTML = '';
+				lostFollowersList.innerHTML = '';
+
+				// Show
+				if (currentFollowers.length === 0) {
+					allFollowersList.innerHTML = '<div class="p-3 text-center">No followers</div>';
+				} else {
+					const allFragment = document.createDocumentFragment();
+					currentFollowers.forEach(follower => {
+						const isNew = !previousFollowersSet.has(follower.login);
+						allFragment.appendChild(createFollowerElement(follower, isNew, false));
 					});
-			});
+					allFollowersList.appendChild(allFragment);
+				}
 
+				if (newFollowersArray.length === 0) {
+					newFollowersList.innerHTML = '<div class="p-3 text-center">No new followers</div>';
+				} else {
+					const newFragment = document.createDocumentFragment();
+					newFollowersArray.forEach(follower => {
+						newFragment.appendChild(createFollowerElement(follower, true, false));
+					});
+					newFollowersList.appendChild(newFragment);
+				}
+
+				if (lostFollowersArray.length === 0) {
+					lostFollowersList.innerHTML = '<div class="p-3 text-center">No lost followers</div>';
+				} else {
+					const lostFragment = document.createDocumentFragment();
+					lostFollowersArray.forEach(follower => {
+						lostFragment.appendChild(createFollowerElement(follower, false, true));
+					});
+					lostFollowersList.appendChild(lostFragment);
+				}
+
+				// Show results
+				resultsContainer.style.display = 'block';
+
+				// Update saved users list
+				updateSavedUsersList();
+
+				// Show appropriate tab
+				if (document.getElementById('showAllTabFirst') && document.getElementById('showAllTabFirst').checked) {
+					// If user chooses to show All tab first
+					document.querySelector('[data-bs-target="#allFollowers"]').click();
+				} else if (newFollowers.length > 0) {
+					// There are new followers
+					document.querySelector('[data-bs-target="#newFollowers"]').click();
+				} else if (lostFollowers.length > 0) {
+					// There are lost followers
+					document.querySelector('[data-bs-target="#lostFollowers"]').click();
+				} else {
+					// Default show All tab
+					document.querySelector('[data-bs-target="#allFollowers"]').click();
+				}
+
+				// Hide loading spinner
+				loadingSpinner.style.display = 'none';
+			}
+
+			// Function to get followers from GitHub API
 			// Load from URL if provided
 			const urlParams = new URLSearchParams(window.location.search);
 			const usernameParam = urlParams.get('username');
@@ -589,6 +948,655 @@
 			if (usernameParam) {
 				usernameInput.value = usernameParam;
 				githubForm.dispatchEvent(new Event('submit'));
+			}
+
+			// Export data function
+			exportDataBtn.addEventListener('click', function () {
+				// Already changed to dropdown so no need to handle here
+			});
+
+			// New data export functions
+			document.getElementById('exportAllData').addEventListener('click', function () {
+				exportData();
+			});
+
+			document.getElementById('export24h').addEventListener('click', function () {
+				const now = new Date();
+				const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+				exportData(past24h, now);
+			});
+
+			document.getElementById('export7days').addEventListener('click', function () {
+				const now = new Date();
+				const past7days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+				exportData(past7days, now);
+			});
+
+			document.getElementById('export30days').addEventListener('click', function () {
+				const now = new Date();
+				const past30days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+				exportData(past30days, now);
+			});
+
+			// Open custom date range modal
+			document.getElementById('exportCustom').addEventListener('click', function () {
+				// Set default values for form
+				const now = new Date();
+				const past30days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+				// Format datetime-local string (YYYY-MM-DDThh:mm)
+				document.getElementById('startDate').value = past30days.toISOString().slice(0, 16);
+				document.getElementById('endDate').value = now.toISOString().slice(0, 16);
+
+				// Show modal
+				const modal = new bootstrap.Modal(document.getElementById('exportDateModal'));
+				modal.show();
+			});
+
+			// Handle export button click in modal
+			document.getElementById('confirmExportDate').addEventListener('click', function () {
+				const startDateStr = document.getElementById('startDate').value;
+				const endDateStr = document.getElementById('endDate').value;
+
+				if (!startDateStr || !endDateStr) {
+					alert('Please select a full date range');
+					return;
+				}
+
+				const startDate = new Date(startDateStr);
+				const endDate = new Date(endDateStr);
+
+				if (startDate > endDate) {
+					alert('Start date cannot be after end date');
+					return;
+				}
+
+				// Export data in selected date range
+				exportData(startDate, endDate);
+
+				// Close modal
+				const modal = bootstrap.Modal.getInstance(document.getElementById('exportDateModal'));
+				modal.hide();
+			});
+
+			// Export data function with selected data export options
+			function exportData(startDate = null, endDate = null) {
+				// If no date range, export all
+				if (!startDate && !endDate) {
+					downloadJSON(searchHistory, 'github_follower_all_history.json');
+					return;
+				}
+
+				// If date range, filter data
+				const filteredData = {};
+
+				for (const username in searchHistory) {
+					// Filter history by date range
+					const filteredHistory = searchHistory[username].filter(item => {
+						const itemDate = new Date(item.timestamp);
+						return (!startDate || itemDate >= startDate) && (!endDate || itemDate <= endDate);
+					});
+
+					// Only add to export data if there's result after filtering
+					if (filteredHistory.length > 0) {
+						filteredData[username] = filteredHistory;
+					}
+				}
+
+				// Create filename with date range information
+				let filename = 'github_follower_history';
+				if (startDate && endDate) {
+					const startStr = startDate.toISOString().slice(0, 10);
+					const endStr = endDate.toISOString().slice(0, 10);
+					filename += `_${startStr}_to_${endStr}`;
+				}
+
+				// Export filtered data
+				downloadJSON(filteredData, `${filename}.json`);
+			}
+
+			// Download JSON function
+			function downloadJSON(data, filename) {
+				// Check if there's data
+				if (Object.keys(data).length === 0) {
+					importMessage.className = 'alert alert-warning';
+					importMessage.textContent = 'No data found in selected date range!';
+					importMessage.style.display = 'block';
+
+					// Hide message after 3 seconds
+					setTimeout(() => {
+						importMessage.style.display = 'none';
+					}, 3000);
+					return;
+				}
+
+				// Create JSON blob from data
+				const dataStr = JSON.stringify(data, null, 2);
+				const blob = new Blob([dataStr], { type: 'application/json' });
+
+				// Create download URL and link
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = filename;
+
+				// Add to DOM, click and remove
+				document.body.appendChild(a);
+				a.click();
+
+				// Clean up
+				setTimeout(function () {
+					document.body.removeChild(a);
+					URL.revokeObjectURL(url);
+
+					// Show success message
+					importMessage.className = 'alert alert-success';
+					importMessage.textContent = `Exported data successfully with ${Object.keys(data).length} accounts!`;
+					importMessage.style.display = 'block';
+
+					// Hide message after 3 seconds
+					setTimeout(() => {
+						importMessage.style.display = 'none';
+					}, 3000);
+				}, 100);
+			}
+
+			// Import data event handlers
+			importDataBtn.addEventListener('click', function () {
+				importFileInput.click();
+			});
+
+			importFileInput.addEventListener('change', function (e) {
+				const file = e.target.files[0];
+				if (!file) return;
+
+				const reader = new FileReader();
+				reader.onload = function (e) {
+					try {
+						const importedData = JSON.parse(e.target.result);
+
+						// Check if data is in correct format
+						if (typeof importedData !== 'object') {
+							throw new Error('Data is not in correct format');
+						}
+
+						// Merge current data with imported data
+						for (const username in importedData) {
+							if (!searchHistory[username]) {
+								searchHistory[username] = [];
+							}
+
+							// Add new data without duplicates (based on timestamp)
+							const existingTimestamps = new Set(searchHistory[username].map(item => item.timestamp));
+
+							importedData[username].forEach(item => {
+								if (!existingTimestamps.has(item.timestamp)) {
+									searchHistory[username].push(item);
+								}
+							});
+
+							// Sort by latest timestamp first
+							searchHistory[username].sort((a, b) =>
+								new Date(b.timestamp) - new Date(a.timestamp)
+							);
+						}
+
+						// Save back to localStorage
+						localStorage.setItem('githubFollowerHistory', JSON.stringify(searchHistory));
+
+						// Update saved users list
+						updateSavedUsersList();
+
+						// Show success message
+						importMessage.className = 'alert alert-success';
+						importMessage.textContent = 'Imported data successfully!';
+						importMessage.style.display = 'block';
+
+						// Update interface if viewing data of any user
+						if (usernameInput.value.trim()) {
+							updateHistoryList(usernameInput.value.trim());
+						}
+
+						// Hide message after 3 seconds
+						setTimeout(() => {
+							importMessage.style.display = 'none';
+						}, 3000);
+
+					} catch (error) {
+						// Show error message
+						importMessage.className = 'alert alert-danger';
+						importMessage.textContent = 'Error: ' + error.message;
+						importMessage.style.display = 'block';
+
+						// Hide message after 3 seconds
+						setTimeout(() => {
+							importMessage.style.display = 'none';
+						}, 3000);
+					}
+
+					// Reset input
+					importFileInput.value = '';
+				};
+
+				reader.readAsText(file);
+			});
+
+			// Clear data function
+			clearDataBtn.addEventListener('click', function () {
+				if (confirm('Are you sure you want to clear all history data? This action cannot be undone.')) {
+					// Clear data
+					localStorage.removeItem('githubFollowerHistory');
+
+					// Reset variable
+					Object.keys(searchHistory).forEach(key => delete searchHistory[key]);
+
+					// Update interface
+					historyList.innerHTML = '<li class="text-center p-3">No history found</li>';
+					updateSavedUsersList();
+
+					// Show message
+					importMessage.className = 'alert alert-warning';
+					importMessage.textContent = 'All history data has been cleared!';
+					importMessage.style.display = 'block';
+
+					// Hide message after 3 seconds
+					setTimeout(() => {
+						importMessage.style.display = 'none';
+					}, 3000);
+				}
+			});
+
+			// Save active tab
+			document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tabEl => {
+				tabEl.addEventListener('shown.bs.tab', function (e) {
+					const username = usernameInput.value.trim();
+					if (username) {
+						localStorage.setItem(`${username}_activeTab`, e.target.getAttribute('data-bs-target'));
+					}
+				});
+			});
+
+			// Show/hide token input
+			useTokenCheck.addEventListener('change', function () {
+				tokenInput.style.display = this.checked ? 'block' : 'none';
+
+				// Save checkbox state
+				localStorage.setItem('useGitHubToken', this.checked);
+
+				// When unchecked, remove token from localStorage
+				if (!this.checked) {
+					localStorage.removeItem('githubToken');
+					githubToken.value = '';
+				}
+			});
+
+			// Save token when changed
+			githubToken.addEventListener('change', function () {
+				if (this.value) {
+					localStorage.setItem('githubToken', this.value);
+				} else {
+					localStorage.removeItem('githubToken');
+				}
+			});
+
+			// Save token when input (to ensure token is always saved)
+			githubToken.addEventListener('input', function () {
+				if (this.value && useTokenCheck.checked) {
+					localStorage.setItem('githubToken', this.value);
+				}
+			});
+
+			// Restore state from localStorage
+			if (localStorage.getItem('useGitHubToken') === 'true') {
+				useTokenCheck.checked = true;
+				tokenInput.style.display = 'block';
+
+				// Restore token
+				if (localStorage.getItem('githubToken')) {
+					githubToken.value = localStorage.getItem('githubToken');
+				}
+			}
+
+			// Default value for "All" tab display preference
+			if (localStorage.getItem('showAllTabFirst') === null) {
+				localStorage.setItem('showAllTabFirst', 'true');
+			}
+
+			// Initialize history
+			const savedData = JSON.parse(localStorage.getItem('githubFollowersData') || '{}');
+			updateHistoryList();
+
+			// Show error message function
+			function showError(message) {
+				errorText.textContent = message;
+				errorMessage.style.display = 'block';
+			}
+
+			// Follower element creation function
+			function createFollowerElement(follower, isNew, isLost) {
+				const followerItem = document.createElement('div');
+				followerItem.className = 'follower-item';
+
+				const avatar = document.createElement('img');
+				avatar.className = 'follower-avatar';
+				avatar.src = follower.avatar_url;
+				avatar.alt = follower.login;
+				followerItem.appendChild(avatar);
+
+				const link = document.createElement('a');
+				link.className = 'follower-link';
+				link.href = follower.html_url;
+				link.target = '_blank';
+				link.textContent = follower.login;
+				followerItem.appendChild(link);
+
+				if (isNew) {
+					const newBadge = document.createElement('span');
+					newBadge.className = 'status-badge badge-new';
+					newBadge.textContent = 'New';
+					followerItem.appendChild(newBadge);
+				} else if (isLost) {
+					const lostBadge = document.createElement('span');
+					lostBadge.className = 'status-badge badge-lost';
+					lostBadge.textContent = 'Lost';
+					followerItem.appendChild(lostBadge);
+				}
+
+				return followerItem;
+			}
+
+			// Update saved users list function
+			function updateSavedUsersList() {
+				savedUsersList.innerHTML = '';
+
+				const savedUsers = Object.keys(searchHistory);
+				if (savedUsers.length === 0) {
+					savedUsersList.innerHTML = '<div class="text-center text-light">No saved accounts</div>';
+					return;
+				}
+
+				savedUsers.forEach(username => {
+					const userBtn = document.createElement('button');
+					userBtn.className = 'btn btn-sm btn-outline-light m-1';
+					userBtn.textContent = username;
+					userBtn.addEventListener('click', function () {
+						usernameInput.value = username;
+						githubForm.dispatchEvent(new Event('submit'));
+					});
+					savedUsersList.appendChild(userBtn);
+				});
+			}
+
+			// Call immediately to display saved users list
+			updateSavedUsersList();
+
+			// Handle form submission
+			githubForm.addEventListener('submit', async function (e) {
+				e.preventDefault();
+
+				const username = usernameInput.value.trim();
+				if (!username) {
+					showError('Please enter a GitHub username');
+					return;
+				}
+
+				// Determine data mode (update new or use saved)
+				const isHistoryMode = document.getElementById('useHistory').checked;
+				const token = useTokenCheck.checked ? githubToken.value.trim() : '';
+
+				// Hide error message
+				errorMessage.style.display = 'none';
+
+				// Show loading spinner
+				loadingSpinner.style.display = 'flex';
+
+				// Handle accordingly
+				if (isHistoryMode) {
+					// Use saved data
+					if (!searchHistory[username] || searchHistory[username].length === 0) {
+						showError(`No history data found for "${username}". Please select update new data mode.`);
+						loadingSpinner.style.display = 'none';
+						return;
+					}
+
+					// Get latest data
+					showFollowersData(username, true);
+				} else {
+					// Update new data from GitHub
+					try {
+						loadingSpinner.innerHTML = `
+							<div class="d-flex flex-column align-items-center">
+								<div class="spinner-border text-light mb-2" role="status">
+									<span class="visually-hidden">Loading...</span>
+								</div>
+								<div class="loading-status">Getting follower data...</div>
+							</div>
+						`;
+
+						// Call API to get follower list
+						const followers = await fetchGithubFollowers(username, token);
+
+						// Save to history
+						addToHistory(username, followers);
+
+						// Show data
+						showFollowersData(username, false);
+					} catch (error) {
+						showError(`Error: ${error.message}`);
+						loadingSpinner.style.display = 'none';
+					}
+				}
+			});
+
+			// GitHub API follower fetching function
+			async function fetchGithubFollowers(username, token = '') {
+				try {
+					const followers = [];
+					let page = 1;
+					let hasMore = true;
+
+					// Limit API calls to avoid exceeding limit
+					const maxPages = 10;
+
+					while (hasMore && page <= maxPages) {
+						// Update loading status
+						const loadingStatus = document.querySelector('.loading-status');
+						if (loadingStatus) {
+							loadingStatus.textContent = `Loading page ${page} (found ${followers.length} followers)...`;
+						}
+
+						// Prepare request
+						const headers = { 'Accept': 'application/vnd.github.v3+json' };
+						if (token) {
+							headers['Authorization'] = `token ${token}`;
+						}
+
+						// Call API with pagination
+						const response = await fetch(
+							`https://api.github.com/users/${username}/followers?per_page=100&page=${page}`,
+							{ headers }
+						);
+
+						// Check for error
+						if (!response.ok) {
+							if (response.status === 404) {
+								throw new Error(`User "${username}" not found`);
+							} else if (response.status === 403) {
+								throw new Error('API limit exceeded. Please use GitHub Token or try again later.');
+							} else {
+								throw new Error(`GitHub API Error: ${response.status}`);
+							}
+						}
+
+						const data = await response.json();
+
+						// Get login list
+						const followerLogins = data.map(f => f.login);
+						followers.push(...followerLogins);
+
+						// Check for more data
+						hasMore = data.length === 100;
+						page++;
+					}
+
+					return followers;
+				} catch (error) {
+					throw error;
+				}
+			}
+
+			// Show followers data function
+			function showFollowersData(username, useHistoryOnly) {
+				// Remove old history alerts if exists
+				const existingAlerts = document.querySelectorAll('.history-alert');
+				existingAlerts.forEach(alert => alert.remove());
+
+				// Show data from history if user selected
+				if (useHistoryOnly) {
+					// Check if history data exists
+					if (!searchHistory[username] || searchHistory[username].length === 0) {
+						showError(`No history data found for "${username}"`);
+						loadingSpinner.style.display = 'none';
+						return;
+					}
+
+					// Show history data loading message
+					const historyAlert = document.createElement('div');
+					historyAlert.className = 'alert alert-info mt-2 mb-2 history-alert';
+					historyAlert.id = 'historyDataAlert';
+					historyAlert.innerHTML = `
+						<div class="d-flex justify-content-between align-items-center">
+							<div>
+								<i class="fas fa-history me-2"></i> You are viewing saved data from previous check. 
+							</div>
+							<a href="#" class="btn btn-sm btn-outline-primary update-data-btn">
+								Update new data
+							</a>
+						</div>
+					`;
+					resultsContainer.prepend(historyAlert);
+
+					// Add event listener for update button
+					document.querySelector('.update-data-btn').addEventListener('click', function (e) {
+						e.preventDefault();
+						document.getElementById('updateData').checked = true;
+						githubForm.dispatchEvent(new Event('submit'));
+					});
+
+					// Switch to history tab
+					document.getElementById('history-tab').click();
+				}
+
+				const userData = searchHistory[username];
+				if (!userData || userData.length === 0) {
+					showError(`No data found for "${username}"`);
+					loadingSpinner.style.display = 'none';
+					return;
+				}
+
+				// Get latest data
+				const currentData = userData[0];
+
+				// Get previous data (if exists)
+				let previousData = null;
+				if (userData.length > 1) {
+					previousData = userData[1];
+				}
+
+				// Determine new and lost followers
+				let newFollowers = [];
+				let lostFollowers = [];
+
+				if (previousData) {
+					const currentFollowersSet = new Set(currentData.followers);
+					const previousFollowersSet = new Set(previousData.followers);
+
+					newFollowers = currentData.followers.filter(f => !previousFollowersSet.has(f));
+					lostFollowers = previousData.followers.filter(f => !currentFollowersSet.has(f));
+				}
+
+				// Update stats
+				totalFollowersEl.textContent = currentData.followers.length;
+				newFollowersEl.textContent = newFollowers.length;
+				lostFollowersEl.textContent = lostFollowers.length;
+
+				// Update counts
+				allCountEl.textContent = currentData.followers.length;
+				newCountEl.textContent = newFollowers.length;
+				lostCountEl.textContent = lostFollowers.length;
+
+				// Update history check time
+				lastCheckedEl.textContent = formatDate(new Date(currentData.timestamp));
+
+				// Convert to object for display
+				const previousFollowersSet = previousData ? new Set(previousData.followers) : new Set();
+
+				const currentFollowers = currentData.followers.map(login => ({
+					login,
+					avatar_url: `https://github.com/${login}.png`,
+					html_url: `https://github.com/${login}`
+				}));
+
+				const newFollowersArray = newFollowers.map(login => ({
+					login,
+					avatar_url: `https://github.com/${login}.png`,
+					html_url: `https://github.com/${login}`
+				}));
+
+				const lostFollowersArray = lostFollowers.map(login => ({
+					login,
+					avatar_url: `https://github.com/${login}.png`,
+					html_url: `https://github.com/${login}`
+				}));
+
+				// Remove old content
+				allFollowersList.innerHTML = '';
+				newFollowersList.innerHTML = '';
+				lostFollowersList.innerHTML = '';
+
+				// Show
+				if (currentFollowers.length === 0) {
+					allFollowersList.innerHTML = '<div class="p-3 text-center">No followers</div>';
+				} else {
+					const allFragment = document.createDocumentFragment();
+					currentFollowers.forEach(follower => {
+						const isNew = !previousFollowersSet.has(follower.login);
+						allFragment.appendChild(createFollowerElement(follower, isNew, false));
+					});
+					allFollowersList.appendChild(allFragment);
+				}
+
+				if (newFollowersArray.length === 0) {
+					newFollowersList.innerHTML = '<div class="p-3 text-center">No new followers</div>';
+				} else {
+					const newFragment = document.createDocumentFragment();
+					newFollowersArray.forEach(follower => {
+						newFragment.appendChild(createFollowerElement(follower, true, false));
+					});
+					newFollowersList.appendChild(newFragment);
+				}
+
+				if (lostFollowersArray.length === 0) {
+					lostFollowersList.innerHTML = '<div class="p-3 text-center">No lost followers</div>';
+				} else {
+					const lostFragment = document.createDocumentFragment();
+					lostFollowersArray.forEach(follower => {
+						lostFragment.appendChild(createFollowerElement(follower, false, true));
+					});
+					lostFollowersList.appendChild(lostFragment);
+				}
+
+				// Show results
+				resultsContainer.style.display = 'block';
+
+				// Update saved users list
+				updateSavedUsersList();
+
+				// Update history
+				updateHistoryList(username);
+
+				// Hide loading spinner
+				loadingSpinner.style.display = 'none';
 			}
 		});
 	</script>
